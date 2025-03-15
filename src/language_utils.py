@@ -8,34 +8,33 @@ import json
 # ------------------------
 # utils for shakespeare dataset
 
-ALL_LETTERS = "\n !\"&'(),-.0123456789:;>?ABCDEFGHIJKLMNOPQRSTUVWXYZ[]abcdefghijklmnopqrstuvwxyz}"
+ALL_LETTERS = (
+    "\n !\"&'(),-.0123456789:;>?ABCDEFGHIJKLMNOPQRSTUVWXYZ[]abcdefghijklmnopqrstuvwxyz}"
+)
 NUM_LETTERS = len(ALL_LETTERS)
 
 
 def _one_hot(index, size):
-    '''returns one-hot vector with given size and value 1 at given index
-    '''
+    """returns one-hot vector with given size and value 1 at given index"""
     vec = [0 for _ in range(size)]
     vec[int(index)] = 1
     return vec
 
 
 def letter_to_index(letter):
-    '''returns one-hot representation of given letter
-    '''
+    """returns one-hot representation of given letter"""
     return ALL_LETTERS.find(letter)
-    
 
 
 def word_to_indices(word):
-    '''returns a list of character indices
+    """returns a list of character indices
 
     Args:
         word: string
-    
+
     Return:
         indices: int list with length len(word)
-    '''
+    """
     indices = []
     for c in word:
         indices.append(ALL_LETTERS.find(c))
@@ -47,26 +46,26 @@ def word_to_indices(word):
 
 
 def split_line(line):
-    '''split given line/phrase into list of words
+    """split given line/phrase into list of words
 
     Args:
         line: string representing phrase to be split
-    
+
     Return:
         list of strings, with each string representing a word
-    '''
+    """
     return re.findall(r"[\w']+|[.,!?;]", line)
 
 
 def _word_to_index(word, indd):
-    '''returns index of given word based on given lookup dictionary
+    """returns index of given word based on given lookup dictionary
 
     returns the length of the lookup dictionary if word not found
 
     Args:
         word: string
         indd: dictionary with string words as keys and int indices as values
-    '''
+    """
     if word in indd:
         return indd[word]
     else:
@@ -74,12 +73,12 @@ def _word_to_index(word, indd):
 
 
 def line_to_indices(line, word2id, max_words=25):
-    '''converts given phrase into list of word indices
-    
+    """converts given phrase into list of word indices
+
     if the phrase has more than max_words words, returns a list containing
     indices of the first max_words words
-    if the phrase has less than max_words words, repeatedly appends integer 
-    representing unknown index to returned list until the list's length is 
+    if the phrase has less than max_words words, repeatedly appends integer
+    representing unknown index to returned list until the list's length is
     max_words
 
     Args:
@@ -89,20 +88,22 @@ def line_to_indices(line, word2id, max_words=25):
 
     Return:
         indl: list of word indices, one index for each word in phrase
-    '''
+    """
     unk_id = len(word2id)
-    line_list = split_line(line) # split phrase in words
+    line_list = split_line(line)  # split phrase in words
     indl = [word2id[w] if w in word2id else unk_id for w in line_list[:max_words]]
-    indl += [unk_id]*(max_words-len(indl))
+    indl += [unk_id] * (max_words - len(indl))
     return indl
 
-def idx_to_embedding(idx,emb):
 
-    embs=[emb[line] for line in idx]
-    return np.array(embs)# [batch , seq_len , emb_dim]
+def idx_to_embedding(idx, emb):
+
+    embs = [emb[line] for line in idx]
+    return np.array(embs)  # [batch , seq_len , emb_dim]
+
 
 def bag_of_words(line, vocab):
-    '''returns bag of words representation of given phrase using given vocab
+    """returns bag of words representation of given phrase using given vocab
 
     Args:
         line: string representing phrase to be parsed
@@ -110,8 +111,8 @@ def bag_of_words(line, vocab):
 
     Return:
         integer list
-    '''
-    bag = [0]*len(vocab)
+    """
+    bag = [0] * len(vocab)
     words = split_line(line)
     for w in words:
         if w in vocab:
@@ -120,15 +121,15 @@ def bag_of_words(line, vocab):
 
 
 def get_word_emb_arr(path):
-    with open(path, 'r') as inf:
+    with open(path, "r") as inf:
         embs = json.load(inf)
-    vocab = embs['vocab']
-    word_emb_arr = np.array(embs['emba'])
+    vocab = embs["vocab"]
+    word_emb_arr = np.array(embs["emba"])
     indd = {}
     # print(len(vocab))
     for i in range(len(vocab)):
         indd[vocab[i]] = i
-    vocab = {w: i for i, w in enumerate(embs['vocab'])}
+    vocab = {w: i for i, w in enumerate(embs["vocab"])}
     return word_emb_arr, indd, vocab
 
 
@@ -146,20 +147,20 @@ def val_to_vec(size, val):
     vec[int(val)] = 1
     return vec
 
+
 def shake_process_x(raw_x_batch):
     x_batch = [word_to_indices(word) for word in raw_x_batch]
     x_batch = np.array(x_batch)
     return x_batch
 
+
 def shake_process_y(raw_y_batch):
     y_batch = [letter_to_index(c) for c in raw_y_batch]
     return y_batch
 
-def sent_process_x(raw_x_batch,emb_arr,indd,max_words):
+
+def sent_process_x(raw_x_batch, emb_arr, indd, max_words):
     x_batch = [e[4] for e in raw_x_batch]
     x_batch = [line_to_indices(e, indd, max_words) for e in x_batch]
     # x_batch = np.array(x_batch)
-    return idx_to_embedding(x_batch,emb_arr)
-
-
-
+    return idx_to_embedding(x_batch, emb_arr)
