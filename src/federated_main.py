@@ -445,7 +445,7 @@ if __name__ == "__main__":
                     sigma.append(gpr.Covariance().clone().detach().numpy())
 
             # test inference on the global test dataset
-            test_acc, test_loss = test_inference(args, global_model, test_dataset)
+            test_acc, test_loss, test_precision, test_recall, test_f1= test_inference(args, global_model, test_dataset)
             test_accuracy.append(test_acc)
             if args.target_accuracy is not None:
                 if test_acc >= args.target_accuracy:

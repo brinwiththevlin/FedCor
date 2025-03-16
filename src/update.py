@@ -17,6 +17,8 @@ from models import (
 import numpy as np
 from tqdm import tqdm
 
+from sklearn.metrics import precision_score, recall_score, f1_score
+
 
 def ce_criterion(pred, target, *args):
     ce_loss = F.cross_entropy(pred, target)
@@ -110,7 +112,6 @@ class LocalUpdate(object):
 
         for iter in range(self.args.local_ep):
             for batch_idx, (datas, labels) in enumerate(self.trainloader):
-
                 datas, labels = datas.to(self.device), labels.to(self.device)
 
                 self.net.zero_grad()
@@ -292,7 +293,7 @@ def federated_train_worker(
 
 
 def test_inference(args, model, test_dataset):
-    """Returns the test accuracy and loss."""
+    """Returns the test accuracy, loss, precision, recall, and F1-score."""
 
     model.eval()
     loss, total, correct = 0.0, 0.0, 0.0
@@ -301,6 +302,9 @@ def test_inference(args, model, test_dataset):
     model.to(device)
     criterion = F.cross_entropy
     testloader = DataLoader(test_dataset, batch_size=128, shuffle=False)
+
+    all_preds = []
+    all_labels = []
 
     for batch_idx, (datas, labels) in enumerate(testloader):
         datas, labels = datas.to(device), labels.to(device)
@@ -313,8 +317,16 @@ def test_inference(args, model, test_dataset):
         # Prediction
         _, pred_labels = torch.max(outputs, 1)
         pred_labels = pred_labels.view(-1)
+
         correct += torch.sum(torch.eq(pred_labels, labels)).item()
         total += len(labels)
 
+        all_preds.extend(pred_labels.cpu().numpy())  # Convert to NumPy for sklearn
+        all_labels.extend(labels.cpu().numpy())
+
     accuracy = correct / total
-    return accuracy, loss / (batch_idx + 1)
+    precision = precision_score(all_labels, all_preds)
+    recall = recall_score(all_labels, all_preds)
+    f1 = f1_score(all_labels, all_preds)
+
+    return accuracy, loss / (batch_idx + 1), precision, recall, f1
