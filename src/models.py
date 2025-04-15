@@ -3,7 +3,7 @@
 # Python version: 3.6
 
 import torch
-from torch import nn
+from torch import Tensor, nn
 import torch.nn.functional as F
 import numpy as np
 import abc
@@ -409,6 +409,56 @@ class RNN(nn.Module):
         sd = self.state_dict()
         sd.update(local_dict)
         self.load_state_dict(sd)
+
+
+class ModelCNNMnist(nn.Module, FedModule):
+    def __init__(self):
+        super(ModelCNNMnist, self).__init__()
+
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(
+                in_channels=1,
+                out_channels=32,
+                kernel_size=5,
+                stride=1,
+                padding=2,
+            ),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.LocalResponseNorm(4, alpha=0.001 / 9.0, beta=0.75, k=1),
+        )
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(
+                in_channels=32,
+                out_channels=32,
+                kernel_size=5,
+                stride=1,
+                padding=2,
+            ),
+            nn.ReLU(),
+            nn.LocalResponseNorm(4, alpha=0.001 / 9.0, beta=0.75, k=1),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+        )
+        self.fc1 = nn.Linear(7 * 7 * 32, 256)
+        self.fc2 = nn.Linear(256, 10)
+
+    def forward(self, x: Tensor, out_activation: bool = False):
+        conv1_ = self.conv1(x)
+        conv2_ = self.conv2(conv1_)
+        fc_ = conv2_.view(-1, 32 * 7 * 7)
+        fc1_ = self.fc1(fc_).clamp(min=0)  # Achieve relu using clamp
+        output = self.fc2(fc1_)
+        if out_activation:
+            return output, conv1_, conv2_
+        else:
+            return output
+
+    def Get_Local_State_Dict(self):
+        sd = self.state_dict()
+        for name in list(sd.keys()):
+            if "weight" in name or "bias" in name:
+                sd.pop(name)
+        return sd
 
 
 if __name__ == "__main__":

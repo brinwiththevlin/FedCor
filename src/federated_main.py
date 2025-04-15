@@ -11,6 +11,7 @@ import numpy as np
 from tqdm import tqdm
 import random
 import torch
+import csv
 
 
 from options import args_parser
@@ -20,7 +21,7 @@ from update import (
     train_federated_learning,
     federated_test_idx,
 )
-from models import MLP, NaiveCNN, BNCNN, ResNet, RNN
+from models import ModelCNNMnist, NaiveCNN, BNCNN, ResNet, RNN
 from utils import get_dataset, average_weights, exp_details, setup_seed
 from mvnt import MVN_Test
 import GPR
@@ -100,7 +101,7 @@ if __name__ == "__main__":
         # BUILD MODEL
         if args.model == "cnn":
             # Naive Convolutional neural netork
-            global_model = NaiveCNN(args=args, input_shape=data_size, final_pool=False)
+            global_model = ModelCNNMnist()
 
         elif args.model == "bncnn":
             # Convolutional neural network with batch normalization
@@ -445,7 +446,9 @@ if __name__ == "__main__":
                     sigma.append(gpr.Covariance().clone().detach().numpy())
 
             # test inference on the global test dataset
-            test_acc, test_loss, test_precision, test_recall, test_f1= test_inference(args, global_model, test_dataset)
+            test_acc, test_loss, test_precision, test_recall, test_f1 = test_inference(
+                args, global_model, test_dataset
+            )
             test_accuracy.append(test_acc)
             if args.target_accuracy is not None:
                 if test_acc >= args.target_accuracy:
@@ -458,6 +461,35 @@ if __name__ == "__main__":
                     "Training Loss : {}".format(np.sum(np.array(list_loss) * weights))
                 )
                 print("Test Accuracy: {:.2f}%\n".format(100 * test_acc))
+
+            # Log to CSV
+            os.makedirs(
+                args.results_file[: args.results_file.rfind("/")], exist_ok=True
+            )
+            with open(args.results_file, "a", newline="") as csvfile:
+                writer = csv.writer(csvfile)
+                # Write header once if file is new
+                if epoch == 0:
+                    writer.writerow(
+                        [
+                            "epoch",
+                            "train_loss",
+                            "test_acc",
+                            "precision",
+                            "recall",
+                            "f1",
+                        ]
+                    )
+                writer.writerow(
+                    [
+                        epoch + 1,
+                        np.mean(train_loss),
+                        test_acc,
+                        test_precision,
+                        test_recall,
+                        test_f1,
+                    ]
+                )
 
         print(" \n Results after {} global rounds of training:".format(epoch + 1))
         print("|---- Final Test Accuracy: {:.2f}%".format(100 * test_accuracy[-1]))

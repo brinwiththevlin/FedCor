@@ -255,6 +255,7 @@ def args_parser():
     )
 
     args = parser.parse_args()
+    args.results_file = f"{args.dataset}_{args.num_users}_{args.model}_{args.iid}_lt{args.label_tampering}_wt{args.weight_tampering}/results.csv"
     return args
 
 

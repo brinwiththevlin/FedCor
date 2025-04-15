@@ -49,7 +49,7 @@ class DatasetSplit(Dataset):
         elif lt == "random":
             self.dataset.targets[self.idxs] = torch.randint(0, 10, (len(self.idxs),))
         elif lt == "none":
-            self.dataset.targets[self.idxs] = self.dataset.targetst[self.args]
+            self.dataset.targets[self.idxs] = self.dataset.targets[self.idxs]
 
 
 class LocalUpdate(object):
@@ -325,8 +325,8 @@ def test_inference(args, model, test_dataset):
         all_labels.extend(labels.cpu().numpy())
 
     accuracy = correct / total
-    precision = precision_score(all_labels, all_preds)
-    recall = recall_score(all_labels, all_preds)
-    f1 = f1_score(all_labels, all_preds)
+    precision = precision_score(all_labels, all_preds, average="macro")
+    recall = recall_score(all_labels, all_preds, average="macro")
+    f1 = f1_score(all_labels, all_preds, average="macro")
 
     return accuracy, loss / (batch_idx + 1), precision, recall, f1
